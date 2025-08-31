@@ -3,13 +3,23 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ashes of the Unnamed — FULL (CDN v3)</title>
+<title>Ashes of the Unnamed — FULL (Import Map Build)</title>
 <meta name="description" content="Retro-3D Gothic Action vertical slice. Iframe-friendly.">
+
+<!-- Import map so bare specifiers work in browser -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/"
+  }
+}
+</script>
+
 <style>
   :root{
     --ui-bg: rgba(10,10,12,.78);
     --ui-fg: #e8e4dc;
-    --ui-iron: #2a2a32;
     --hp: #b51f2a;
     --st: #6ea0c9;
     --mp: #79c06d;
@@ -17,9 +27,11 @@
   }
   html,body{height:100%;margin:0;background:#0a0a0a;color:var(--ui-fg);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans",sans-serif;overflow:hidden}
   #root{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(1200px 800px at 50% 50%,#151515 0%,#080808 60%)}
+
   /* 16:9 responsive stage */
   #stage{position:relative;width:100vw;height:56.25vw;max-width:177.78vh;max-height:100vh;background:#000;overflow:hidden;border:1px solid #1b1b1b;box-shadow:0 0 60px rgba(0,0,0,.65) inset}
   canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+
   /* HUD */
   #hud{position:absolute;inset:0;pointer-events:none}
   .ornate{position:absolute;inset:8px;border:2px solid #2b2b2b;box-shadow:0 0 0 2px rgba(0,0,0,.5) inset,0 0 18px rgba(0,0,0,.45) inset;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,.15))}
@@ -27,15 +39,13 @@
   .ornate:before{left:-8px;top:-8px}
   .ornate:after{right:-8px;bottom:-8px;transform:rotate(180deg)}
 
-  /* Bars container: bottom-left, fixed width 40% for readability */
-  .bars{position:absolute;left:18px;bottom:18px;width:40%;display:grid;gap:8px;pointer-events:none}
+  /* Bars: bottom-left, fixed width for visibility; left-anchored fill */
+  .bars{position:absolute;left:18px;bottom:18px;width:40%;max-width:520px;display:grid;gap:8px}
   .bar{position:relative;height:14px;background:rgba(12,12,16,.85);border:1px solid #2e2e36;overflow:hidden}
-  .bar span{position:absolute;left:0;top:0;bottom:0;width:70%;transform-origin:left center;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(0,0,0,.18)),repeating-linear-gradient(90deg,rgba(255,255,255,.06) 0 6px,transparent 6px 12px);transition:width .14s}
-  .bar.hp span{background-color:var(--hp);mix-blend-mode:screen;animation:hpPulse 2.4s ease-in-out infinite}
+  .bar span{position:absolute;left:0;top:0;bottom:0;width:100%;transform-origin:left center;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(0,0,0,.18)),repeating-linear-gradient(90deg,rgba(255,255,255,.06) 0 6px,transparent 6px 12px)}
+  .bar.hp span{background-color:var(--hp);mix-blend-mode:screen}
   .bar.st span{background-color:var(--st);mix-blend-mode:screen}
-  .bar.mp span{background-color:var(--mp);mix-blend-mode:screen;animation:manaWave 3.2s linear infinite}
-  @keyframes hpPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25)}}
-  @keyframes manaWave{0%{transform:translateX(-3%)}100%{transform:translateX(3%)}}
+  .bar.mp span{background-color:var(--mp);mix-blend-mode:screen}
 
   /* Crosshair */
   #ret{position:absolute;left:50%;top:50%;width:24px;height:24px;transform:translate(-50%,-50%);pointer-events:none}
@@ -89,7 +99,7 @@
       <div id="title" class="veil">
         <div class="panel">
           <h1>ASHES OF THE UNNAMED</h1>
-          <p style="opacity:.9;margin:8px 0 12px">Full CDN build (v3). Click to start; then click the game to capture the mouse.</p>
+          <p style="opacity:.9;margin:8px 0 12px">Full Import Map build. Click to start; then click the game to capture the mouse.</p>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button id="startBtn" class="btn">Click to Start</button>
             <button id="howBtn" class="btn ghost">Controls</button>
@@ -123,8 +133,8 @@
   </div>
 
   <script type="module">
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js";
-import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/controls/PointerLockControls.js";
+    import * as THREE from "three";
+    import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 
     // ---------- DOM refs ----------
     const stage = document.getElementById('stage');
@@ -178,7 +188,7 @@ import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.160/ex
     controls.addEventListener('lock', ()=> pointerLocked=true);
     controls.addEventListener('unlock', ()=> pointerLocked=false);
 
-    // utility
+    // utils
     function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
     function bar(el,cur,max){ el.style.width = clamp(Math.round((cur/max)*100),0,100)+'%'; }
 
@@ -192,7 +202,7 @@ import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.160/ex
     }
     const texStone = makeTexture(256,256,(g,w,h)=>{
       g.fillStyle='#191a1d'; g.fillRect(0,0,w,h);
-      for(let i=0;i<260;i++){ const x=Math.random()*w,y=Math.random()*h,r=2+Math.random()*4; g.fillStyle=`rgba(255,255,255,${Math.random()*0.08})`; g.beginPath(); g.arc(x,y,r,0,6.28); g.fill();}
+      for(let i=0;i<260;i++){ const x=Math.random()*w,y=Math.random()*h,r=2+Math.random()*4; g.fillStyle=`rgba(255,255,255,${Math.random()*0.08})`; g.beginPath(); g.arc(x,y,r,0,6.28); g.fill(); }
     });
     const texBrick = makeTexture(256,256,(g,w,h)=>{
       g.fillStyle='#2a2426'; g.fillRect(0,0,w,h);
@@ -227,8 +237,7 @@ import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.160/ex
       const t=new THREE.CanvasTexture(c); t.minFilter=THREE.NearestFilter; t.magFilter=THREE.NearestFilter; t.wrapS=THREE.ClampToEdgeWrapping; t.wrapT=THREE.ClampToEdgeWrapping; t.needsUpdate=true;
       return {tex:t, w, h, frames};
     }
-    // ember puff
-    const emberSheet = makeSpriteSheet(32,32,6,(g,w,h,i,f)=>{
+    const emberSheet = makeSpriteSheet(32,32,6,(g,w,h,i)=>{
       const cx=w*i, r=6+i*3;
       g.save(); g.translate(cx+w/2,h/2);
       g.fillStyle='rgba(212,87,42,0.25)'; g.beginPath(); g.arc(0,0,r+4,0,6.28); g.fill();
@@ -236,8 +245,7 @@ import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.160/ex
       g.fillStyle='rgba(255,230,160,0.4)'; g.beginPath(); g.arc(0,0,r*.5,0,6.28); g.fill();
       g.restore();
     });
-    // slash arc
-    const slashSheet = makeSpriteSheet(64,64,5,(g,w,h,i,f)=>{
+    const slashSheet = makeSpriteSheet(64,64,5,(g,w,h,i)=>{
       const cx=w*i; g.save(); g.translate(cx+w/2,h/2);
       g.strokeStyle='rgba(255,255,255,.35)'; g.lineWidth=3;
       g.beginPath(); g.arc(0,0,20+i*3, -1.2, 0.3); g.stroke();
@@ -245,15 +253,13 @@ import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.160/ex
       g.beginPath(); g.arc(0,0,18+i*3, -1.2, 0.3); g.stroke();
       g.restore();
     });
-    // wraith flicker
-    const wraithSheet = makeSpriteSheet(40,56,6,(g,w,h,i,f)=>{
+    const wraithSheet = makeSpriteSheet(40,56,6,(g,w,h,i)=>{
       const cx=w*i;
       g.fillStyle=`rgba(120,160,180,${.35 + Math.sin(i)*.2})`;
       g.fillRect(cx+10,8,20,40);
       g.fillStyle='rgba(255,255,255,.25)'; g.fillRect(cx+14,20,4,6); g.fillRect(cx+22,20,4,6);
     });
-    // hound run (abstract)
-    const houndSheet = makeSpriteSheet(48,32,6,(g,w,h,i,f)=>{
+    const houndSheet = makeSpriteSheet(48,32,6,(g,w,h,i)=>{
       const cx=w*i;
       g.fillStyle='#333'; g.fillRect(cx+6,12,28,10);
       g.fillStyle='#222'; g.fillRect(cx+28,8,10,6);
@@ -304,7 +310,7 @@ import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.160/ex
     }
     buildTown();
 
-    // ambient embers (animated sprites)
+    // ambient embers
     const emberSprites=[];
     for(let i=0;i<18;i++){
       const anim=makeSpriteMaterial(emberSheet);
@@ -317,7 +323,6 @@ import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.160/ex
     function makeShrine(x,z){
       const s = new THREE.Mesh(new THREE.CylinderGeometry(0.8,1.2,1.2,12), new THREE.MeshLambertMaterial({color:0x444466}));
       s.position.set(x,0.6,z); s.castShadow=true; world.add(s);
-      // glow sprite
       const anim=makeSpriteMaterial(emberSheet); anim.rate=0.09;
       const glow=new THREE.Sprite(anim.mat); glow.position.set(x,1.4,z); glow.scale.set(2,2,1); world.add(glow);
       shrines.push({mesh:s, glow, anim});
@@ -351,7 +356,7 @@ import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.160/ex
     }
 
     // ---------- Enemies & Boss ----------
-    const enemies=[];     // <-- single declaration (fixed)
+    const enemies=[]; // single declaration
     function makeBillboard(sheet, x,y,z, scaleX, scaleY){
       const anim=makeSpriteMaterial(sheet);
       const sp=new THREE.Sprite(anim.mat); sp.position.set(x,y,z); sp.scale.set(scaleX,scaleY,1); scene.add(sp);
@@ -388,7 +393,7 @@ import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.160/ex
     buildBoss();
 
     // Projectiles
-    const projectiles=[]; // <-- single declaration (fixed)
+    const projectiles=[]; // single declaration
     function shoot(from, dir, speed, dmg, owner='player'){
       const geo=new THREE.SphereGeometry(.12,8,8);
       const mat=new THREE.MeshBasicMaterial({color: owner==='player'?0x88ff88:0xff8844});
@@ -440,7 +445,7 @@ import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.160/ex
     function showSub(msg,t=2){ hud.subs.textContent=msg; hud.subs.style.display='block'; setTimeout(()=>hud.subs.style.display='none', t*1000); }
 
     // Save
-    const SAVE_KEY="ashes_full_cdn_v3";
+    const SAVE_KEY="ashes_full_importmap_v1";
     function save(){ localStorage.setItem(SAVE_KEY, JSON.stringify({shrine:player.lastShrine,hp:player.hp,st:player.st,mp:player.mp})); }
     function load(){ const raw=localStorage.getItem(SAVE_KEY); if(!raw) return; try{ const d=JSON.parse(raw); player.lastShrine=d.shrine||0; const s=shrines[player.lastShrine]||shrines[0]; camera.position.set(s.mesh.position.x,1.6,s.mesh.position.z+1.4); Object.assign(player,{hp:d.hp||100,st:d.st||100,mp:d.mp||60}); }catch(e){} }
 
@@ -452,7 +457,7 @@ import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.160/ex
 
     btn.start.addEventListener('click', startGame);
     btn.how.addEventListener('click', ()=>alert("Controls:\nWASD move, Mouse look, Shift sprint, Space jump/dodge, LMB light/heavy (hold), RMB parry, E Eldritch Bolt, Q Grave Lance, R heal, Tab wheel, Esc pause."));
-    btn.credits.addEventListener('click', ()=>alert("Ashes of the Unnamed — Full CDN build (v3)\nDesign & Code: Placeholder\nEngine: Three.js\nAll procedural art."));
+    btn.credits.addEventListener('click', ()=>alert("Ashes of the Unnamed — Import Map build\nDesign & Code: Placeholder\nEngine: Three.js\nAll procedural art."));
     btn.resume?.addEventListener('click', ()=>togglePause(false));
     btn.reset?.addEventListener('click', ()=>{ localStorage.removeItem(SAVE_KEY); showToast("Run reset"); });
     btn.toTitle?.addEventListener('click', quitToTitle);
@@ -560,7 +565,7 @@ import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.160/ex
       }
     }
 
-    // Projectiles & sprites update
+    // Projectiles & transient sprites
     function updateProjectiles(dt){
       for(let i=projectiles.length-1;i>=0;i--){
         const p=projectiles[i]; p.mesh.position.addScaledVector(p.vel,dt); p.ttl-=dt; let hit=false;
@@ -572,13 +577,10 @@ import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.160/ex
         }
         if(hit||p.ttl<=0){ world.remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose(); projectiles.splice(i,1); }
       }
-      // update transient sprites
       for(let i=sprites.length-1;i>=0;i--){
         const o=sprites[i]; o.ttl-=dt; updateSpriteAnim(o.anim,dt); if(o.ttl<=0){ scene.remove(o.s); sprites.splice(i,1); }
       }
-      // shrine glows
       for(const s of shrines){ updateSpriteAnim(s.anim, dt); }
-      // embers
       for(const e of emberSprites){ updateSpriteAnim(e.anim,dt); e.s.position.y += e.vy*dt; if(e.s.position.y>6.5) e.s.position.y=1.0; }
     }
 
